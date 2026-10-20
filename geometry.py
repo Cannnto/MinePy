@@ -1,4 +1,6 @@
 from OpenGL.GL import *
+import math
+from matrix import *
 
 class Point:
     def __init__(self, x, y, z):
@@ -8,9 +10,8 @@ class Point:
 
 class Figure():
     def __init__(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
+        self.coord = Point(x, y, z)
+        self.matrix = Matrix()
         
 class Cube(Figure):
     def __init__(self, x, y, z, apothem):
@@ -37,18 +38,35 @@ class Cube(Figure):
             Plane(x, y + apothem, z, [self.points[1], self.points[6], self.points[5], self.points[2]])
         ]
     
-    def move(self, dx, dy, dz):
-        self.x += dx
-        self.y += dy
-        self.z += dz
-        for point in self.points:
-            point.x += dx
-            point.y += dy
-            point.z += dz
+    def translate(self, dx, dy, dz):
+        self.matrix.translate(dx, dy, dz)
+
+    def scale(self, sx, sy, sz):
+        self.matrix.scale(sx, sy, sz)
+    
+    def rotateX(self, ang):
+        self.matrix.translate(-self.coord.x, -self.coord.y, -self.coord.z)
+        self.matrix.rotateX(ang*math.pi/180)
+        self.matrix.translate(self.coord.x, self.coord.y, self.coord.z)
+
+    def rotateY(self, ang):
+        self.matrix.translate(-self.coord.x, -self.coord.y, -self.coord.z)
+        self.matrix.rotateY(ang*math.pi/180)
+        self.matrix.translate(self.coord.x, self.coord.y, self.coord.z)
+
+    def rotateZ(self, ang):
+        self.matrix.translate(-self.coord.x, -self.coord.y, -self.coord.z)
+        self.matrix.rotateZ(ang*math.pi/180)
+        self.matrix.translate(self.coord.x, self.coord.y, self.coord.z)
 
     def draw(self, canvas):
         for plane in self.planes:
             plane.draw(canvas)
+    
+    def update(self):
+        for point in self.points + [self.coord]:
+            self.matrix.applyPoint(point)
+        self.matrix.reset()
 
 class Plane(Figure):
     def __init__(self, x, y, z, points):

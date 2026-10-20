@@ -27,7 +27,7 @@ class Canvas():
         glMatrixMode(GL_MODELVIEW)
         glClearColor(0, 0, 0, 1.0)
         
-        self.Cube = Cube(50, 0, 300, 50)
+        self.Cube = Cube(0, 0, 300, 50)
 
         # units per second
         self.speed = 200
@@ -51,16 +51,23 @@ class Canvas():
         self.last_time = now
 
         step = self.speed * dt
-        dx = dy = dz = 0
 
-        if glfw.get_key(self.window, glfw.KEY_D) == glfw.PRESS: dx += step
-        if glfw.get_key(self.window, glfw.KEY_A) == glfw.PRESS: dx -= step
-        if glfw.get_key(self.window, glfw.KEY_W) == glfw.PRESS: dy += step
-        if glfw.get_key(self.window, glfw.KEY_S) == glfw.PRESS: dy -= step
-        if glfw.get_key(self.window, glfw.KEY_K) == glfw.PRESS: dz += step
-        if glfw.get_key(self.window, glfw.KEY_J) == glfw.PRESS: dz -= step
+        if glfw.get_key(self.window, glfw.KEY_D) == glfw.PRESS: self.Cube.translate(step, 0, 0)
+        if glfw.get_key(self.window, glfw.KEY_A) == glfw.PRESS: self.Cube.translate(-step, 0, 0)
+        if glfw.get_key(self.window, glfw.KEY_W) == glfw.PRESS: self.Cube.translate(0, step, 0)
+        if glfw.get_key(self.window, glfw.KEY_S) == glfw.PRESS: self.Cube.translate(0, -step, 0)
+        if glfw.get_key(self.window, glfw.KEY_K) == glfw.PRESS: self.Cube.translate(0, 0, step)
+        if glfw.get_key(self.window, glfw.KEY_J) == glfw.PRESS: self.Cube.translate(0, 0, -step)
 
-        self.Cube.move(dx, dy, dz)
+        if glfw.get_key(self.window, glfw.KEY_U) == glfw.PRESS: self.Cube.rotateX(step)
+        if glfw.get_key(self.window, glfw.KEY_I) == glfw.PRESS: self.Cube.rotateY(step)
+        if glfw.get_key(self.window, glfw.KEY_O) == glfw.PRESS: self.Cube.rotateZ(step)
+
+        # if glfw.get_key(self.window, glfw.KEY_U) == glfw.PRESS: self.Cube.scale(step)
+        # if glfw.get_key(self.window, glfw.KEY_I) == glfw.PRESS: self.Cube.rotateY(step)
+        # if glfw.get_key(self.window, glfw.KEY_O) == glfw.PRESS: self.Cube.rotateZ(step)
+
+        self.Cube.update()
 
     def draw(self):
         glClear(GL_COLOR_BUFFER_BIT)
