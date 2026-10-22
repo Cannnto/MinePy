@@ -11,7 +11,10 @@ class Canvas():
 
         self.viewport = ViewPort(self.w, self.h)
         self.camera = Camera(0, 0, -100)
-        
+
+        # anything closer to the camera than this is cut off
+        self.near = 0.1
+
         glfw.init()
         self.window = glfw.create_window(self.w, self.h, "MinePy", None, None)
         glfw.make_context_current(self.window)
@@ -106,10 +109,11 @@ class Canvas():
         for cube in self.Cubes:
             cube.draw(self)
     
-    def project(self, point):
+    def toCamera(self, point):
         pCam = self.camera.matrix.multiply(self.camera.lookAt, [[point.x], [point.y], [point.z], [1]])
+        return Point(pCam[0][0], pCam[1][0], pCam[2][0])
 
-        pointInCamera = Point(pCam[0][0], pCam[1][0], pCam[2][0])
+    def project(self, pointInCamera):
         vx = pointInCamera.x / pointInCamera.z * self.viewport.d
         vy = pointInCamera.y / pointInCamera.z * self.viewport.d
         cx = vx / self.viewport.w * self.w

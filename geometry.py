@@ -43,6 +43,26 @@ class Point:
         mag = mag if mag else 1
         return Point(point.x/mag, point.y/mag, point.z/mag)
 
+# cuts a polygon (in camera space) at the plane z = near, keeping only what is in front of it
+def clip_near(points, near):
+    result = []
+    for i in range(len(points)):
+        a = points[i]
+        b = points[(i + 1) % len(points)]
+
+        a_inside = a.z >= near
+        b_inside = b.z >= near
+
+        # the edge crosses the plane: add the crossing point
+        if a_inside != b_inside:
+            t = (near - a.z) / (b.z - a.z)
+            result.append(a.addition(b.subtraction(a).scalarMultiply(t)))
+
+        if b_inside:
+            result.append(b)
+
+    return result
+
 class Figure():
     def __init__(self, x, y, z):
         self.coord = Point(x, y, z)
@@ -121,13 +141,21 @@ class Triangle():
         self.p0, self.p1, self.p2 = points
 
     def draw(self, canvas):
-        p0x, p0y = canvas.project(self.p0)
-        p1x, p1y = canvas.project(self.p1)
-        p2x, p2y = canvas.project(self.p2)
+        # 1. camera space
+        inCamera = []
+        for p in [self.p0, self.p1, self.p2]:
+            inCamera.append(canvas.toCamera(p)) 
 
+        # 2. cut at the near plane
+        clipped = clip_near(inCamera, canvas.near)
+        if len(clipped) < 3:
+            return
+
+        # 3. project and draw (3 or 4 vertices)
+        colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0)]
         # glBegin(GL_TRIANGLES)
         glBegin(GL_LINE_LOOP)
-        glColor3f(1, 0, 0); glVertex2f(p0x, p0y)
-        glColor3f(0, 1, 0); glVertex2f(p1x, p1y)
-        glColor3f(0, 0, 1); glVertex2f(p2x, p2y)
+        for point, color in zip(clipped, colors):
+            glColor3f(*color)
+            glVertex2f(*canvas.project(point))
         glEnd()
