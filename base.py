@@ -3,6 +3,7 @@ import random
 from OpenGL.GL import *
 from geometry import *
 from camera import *
+from input import *
 
 class Canvas():
     def __init__(self):
@@ -39,6 +40,7 @@ class Canvas():
 
         # units per second
         self.speed = 200
+        self.input = Input(self.window, self.camera, self.speed)
         self.last_time = glfw.get_time()
 
     def random_cube(self, size=None):
@@ -71,34 +73,8 @@ class Canvas():
         dt = now - self.last_time
         self.last_time = now
 
-        step = self.speed * dt
+        self.input.update(dt)
 
-        if glfw.get_key(self.window, glfw.KEY_W) == glfw.PRESS: 
-            self.camera.coord.selfAdd(self.camera.directionAxis.scalarMultiply(step))
-        if glfw.get_key(self.window, glfw.KEY_S) == glfw.PRESS: 
-            self.camera.coord.selfSubtract(self.camera.directionAxis.scalarMultiply(step))
-        if glfw.get_key(self.window, glfw.KEY_D) == glfw.PRESS: 
-            self.camera.coord.selfAdd(self.camera.rightAxis.scalarMultiply(step))
-        if glfw.get_key(self.window, glfw.KEY_A) == glfw.PRESS: 
-            self.camera.coord.selfSubtract(self.camera.rightAxis.scalarMultiply(step))
-                
-        # if glfw.get_key(self.window, glfw.KEY_A) == glfw.PRESS: self.camera.x -= step
-        # if glfw.get_key(self.window, glfw.KEY_S) == glfw.PRESS: self.camera.z -= step * self.camera.directionAxis
-
-        # if glfw.get_key(self.window, glfw.KEY_D) == glfw.PRESS: self.Cubes[0].translate(step, 0, 0)
-        # if glfw.get_key(self.window, glfw.KEY_A) == glfw.PRESS: self.Cubes[0].translate(-step, 0, 0)
-        # if glfw.get_key(self.window, glfw.KEY_W) == glfw.PRESS: self.Cubes[0].translate(0, step, 0)
-        # if glfw.get_key(self.window, glfw.KEY_S) == glfw.PRESS: self.Cubes[0].translate(0, -step, 0)
-        # if glfw.get_key(self.window, glfw.KEY_K) == glfw.PRESS: self.Cubes[0].translate(0, 0, step)
-        # if glfw.get_key(self.window, glfw.KEY_J) == glfw.PRESS: self.Cubes[0].translate(0, 0, -step)
-        # if glfw.get_key(self.window, glfw.KEY_U) == glfw.PRESS: self.Cubes[0].rotateX(step)
-        # if glfw.get_key(self.window, glfw.KEY_I) == glfw.PRESS: self.Cubes[0].rotateY(step)
-        # if glfw.get_key(self.window, glfw.KEY_O) == glfw.PRESS: self.Cubes[0].rotateZ(step)
-
-
-        # if glfw.get_key(self.window, glfw.KEY_U) == glfw.PRESS: self.Cube.scale(step)
-        # if glfw.get_key(self.window, glfw.KEY_I) == glfw.PRESS: self.Cube.rotateY(step)
-        # if glfw.get_key(self.window, glfw.KEY_O) == glfw.PRESS: self.Cube.rotateZ(step)
         self.camera.update()
         
         for cube in self.Cubes:

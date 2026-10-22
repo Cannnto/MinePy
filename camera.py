@@ -27,9 +27,20 @@ class Camera():
         self.rightAxis = Point(0,0,0)
         self.upAxis = Point(0,0,0)
 
+        # in degrees; yaw = 90 makes the camera start looking towards +Z
+        self.pitch = 0
+        self.yaw = 90
+
+        self.update()
+
     def update(self):
-        # self.directionAxis = Point.normalize(self.front.addition(Point(self.x, self.y, self.z)))
-        self.directionAxis = Point.normalize(self.front)
+        yaw = math.radians(self.yaw)
+        pitch = math.radians(self.pitch)
+        self.directionAxis.x = math.cos(yaw) * math.cos(pitch)
+        self.directionAxis.y = math.sin(pitch)
+        self.directionAxis.z = math.sin(yaw) * math.cos(pitch)
+        self.directionAxis = Point.normalize(self.directionAxis)
+
         self.rightAxis = Point.normalize(self.upVector.crossProduct(self.directionAxis))
         self.upAxis = self.directionAxis.crossProduct(self.rightAxis)
 
