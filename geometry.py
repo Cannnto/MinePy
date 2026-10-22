@@ -8,6 +8,41 @@ class Point:
         self.y = y
         self.z = z
 
+    def selfSubtract(self, point):
+        self.x -= point.x
+        self.y -= point.y
+        self.z -= point.z
+
+    def selfAdd(self, point):
+        self.x += point.x
+        self.y += point.y
+        self.z += point.z
+    
+    def subtraction(self, point):
+        return Point(self.x - point.x, self.y - point.y, self.z - point.z)
+
+    def addition(self, point):
+        return Point(self.x + point.x, self.y + point.y, self.z + point.z)
+
+    def scalarMultiply(self, value):
+        return Point(self.x * value, self.y * value, self.z * value)
+
+    def dotProduct(self, point):
+        return self.x * point.x + self.y * point.y + self.z * point.z
+
+    def crossProduct(self, point):
+        return Point(
+            self.y * point.z - self.z * point.y,
+            self.z * point.x - self.x * point.z,
+            self.x * point.y - self.y * point.x
+        )
+
+    @staticmethod
+    def normalize(point):
+        mag = (point.x**2 + point.y**2 + point.z**2)**.5
+        mag = mag if mag else 1
+        return Point(point.x/mag, point.y/mag, point.z/mag)
+
 class Figure():
     def __init__(self, x, y, z):
         self.coord = Point(x, y, z)

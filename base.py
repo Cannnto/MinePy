@@ -1,21 +1,16 @@
 import glfw
+import random
 from OpenGL.GL import *
 from geometry import *
-
-class ViewPort():
-    def __init__(self):
-        self.w = 1
-        self.h = 0.75
-
-        #distance between camera and viewport
-        self.d = 1
+from camera import *
 
 class Canvas():
     def __init__(self):
-        self.viewport = ViewPort()
-        
-        self.w = 640;
-        self.h = 480;
+        self.w = 940;
+        self.h = 680;
+
+        self.viewport = ViewPort(self.w, self.h)
+        self.camera = Camera(0, 0, -100)
         
         glfw.init()
         self.window = glfw.create_window(self.w, self.h, "MinePy", None, None)
@@ -23,15 +18,38 @@ class Canvas():
 
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        glOrtho(-320, 320, -240, 240, -1, 1)
+        glOrtho(-self.w/2, self.w/2, -self.h/2, self.h/2, -1, 1)
         glMatrixMode(GL_MODELVIEW)
         glClearColor(0, 0, 0, 1.0)
         
-        self.Cube = Cube(0, 0, 300, 50)
+        self.Cubes = [
+            self.random_cube(50),
+            self.random_cube(),
+            self.random_cube(),
+            self.random_cube(),
+            self.random_cube(),
+            self.random_cube(),
+            self.random_cube(),
+            self.random_cube(),
+            self.random_cube()
+        ]
 
         # units per second
         self.speed = 200
         self.last_time = glfw.get_time()
+
+    def random_cube(self, size=None):
+        if size is None:
+            size = 10 + 50 * random.random()
+        z = 200 + 200 * random.random()
+
+        # visible area at the depth of the cube's front face, minus its size so it fits entirely
+        half_w = (z - size) * (self.viewport.w / 2) / self.viewport.d - size
+        half_h = (z - size) * (self.viewport.h / 2) / self.viewport.d - size
+
+        x = (random.random() * 2 - 1) * half_w
+        y = (random.random() * 2 - 1) * half_h
+        return Cube(x, y, z, size)
 
     def run(self):
         while not glfw.window_should_close(self.window):
@@ -52,30 +70,48 @@ class Canvas():
 
         step = self.speed * dt
 
-        if glfw.get_key(self.window, glfw.KEY_D) == glfw.PRESS: self.Cube.translate(step, 0, 0)
-        if glfw.get_key(self.window, glfw.KEY_A) == glfw.PRESS: self.Cube.translate(-step, 0, 0)
-        if glfw.get_key(self.window, glfw.KEY_W) == glfw.PRESS: self.Cube.translate(0, step, 0)
-        if glfw.get_key(self.window, glfw.KEY_S) == glfw.PRESS: self.Cube.translate(0, -step, 0)
-        if glfw.get_key(self.window, glfw.KEY_K) == glfw.PRESS: self.Cube.translate(0, 0, step)
-        if glfw.get_key(self.window, glfw.KEY_J) == glfw.PRESS: self.Cube.translate(0, 0, -step)
+        if glfw.get_key(self.window, glfw.KEY_W) == glfw.PRESS: 
+            self.camera.coord.selfAdd(self.camera.directionAxis.scalarMultiply(step))
+        if glfw.get_key(self.window, glfw.KEY_S) == glfw.PRESS: 
+            self.camera.coord.selfSubtract(self.camera.directionAxis.scalarMultiply(step))
+        if glfw.get_key(self.window, glfw.KEY_D) == glfw.PRESS: 
+            self.camera.coord.selfAdd(self.camera.rightAxis.scalarMultiply(step))
+        if glfw.get_key(self.window, glfw.KEY_A) == glfw.PRESS: 
+            self.camera.coord.selfSubtract(self.camera.rightAxis.scalarMultiply(step))
+                
+        # if glfw.get_key(self.window, glfw.KEY_A) == glfw.PRESS: self.camera.x -= step
+        # if glfw.get_key(self.window, glfw.KEY_S) == glfw.PRESS: self.camera.z -= step * self.camera.directionAxis
 
-        if glfw.get_key(self.window, glfw.KEY_U) == glfw.PRESS: self.Cube.rotateX(step)
-        if glfw.get_key(self.window, glfw.KEY_I) == glfw.PRESS: self.Cube.rotateY(step)
-        if glfw.get_key(self.window, glfw.KEY_O) == glfw.PRESS: self.Cube.rotateZ(step)
+        # if glfw.get_key(self.window, glfw.KEY_D) == glfw.PRESS: self.Cubes[0].translate(step, 0, 0)
+        # if glfw.get_key(self.window, glfw.KEY_A) == glfw.PRESS: self.Cubes[0].translate(-step, 0, 0)
+        # if glfw.get_key(self.window, glfw.KEY_W) == glfw.PRESS: self.Cubes[0].translate(0, step, 0)
+        # if glfw.get_key(self.window, glfw.KEY_S) == glfw.PRESS: self.Cubes[0].translate(0, -step, 0)
+        # if glfw.get_key(self.window, glfw.KEY_K) == glfw.PRESS: self.Cubes[0].translate(0, 0, step)
+        # if glfw.get_key(self.window, glfw.KEY_J) == glfw.PRESS: self.Cubes[0].translate(0, 0, -step)
+        # if glfw.get_key(self.window, glfw.KEY_U) == glfw.PRESS: self.Cubes[0].rotateX(step)
+        # if glfw.get_key(self.window, glfw.KEY_I) == glfw.PRESS: self.Cubes[0].rotateY(step)
+        # if glfw.get_key(self.window, glfw.KEY_O) == glfw.PRESS: self.Cubes[0].rotateZ(step)
+
 
         # if glfw.get_key(self.window, glfw.KEY_U) == glfw.PRESS: self.Cube.scale(step)
         # if glfw.get_key(self.window, glfw.KEY_I) == glfw.PRESS: self.Cube.rotateY(step)
         # if glfw.get_key(self.window, glfw.KEY_O) == glfw.PRESS: self.Cube.rotateZ(step)
-
-        self.Cube.update()
+        self.camera.update()
+        
+        for cube in self.Cubes:
+            cube.update()
 
     def draw(self):
         glClear(GL_COLOR_BUFFER_BIT)
-        self.Cube.draw(self)
-
+        for cube in self.Cubes:
+            cube.draw(self)
+    
     def project(self, point):
-        vx = point.x / point.z * self.viewport.d
-        vy = point.y / point.z * self.viewport.d
+        pCam = self.camera.matrix.multiply(self.camera.lookAt, [[point.x], [point.y], [point.z], [1]])
+
+        pointInCamera = Point(pCam[0][0], pCam[1][0], pCam[2][0])
+        vx = pointInCamera.x / pointInCamera.z * self.viewport.d
+        vy = pointInCamera.y / pointInCamera.z * self.viewport.d
         cx = vx / self.viewport.w * self.w
         cy = vy / self.viewport.h * self.h
         return cx, cy
