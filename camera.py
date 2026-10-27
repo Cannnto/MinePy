@@ -5,7 +5,7 @@ class ViewPort():
         self.w = 2
         self.h = Ch/Cw * 2
 
-        #distance between camera and viewport
+        # distance between camera and viewport
         self.d = 1
 
 class Camera():
