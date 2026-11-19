@@ -69,7 +69,8 @@ class Figure():
         self.matrix = Matrix()
         
 class Cube(Figure):
-    def __init__(self, x, y, z, apothem):
+    # color = None keeps the colorful gradient; an (r, g, b) tuple paints the cube with a single color
+    def __init__(self, x, y, z, apothem, color=None):
         super().__init__(x, y, z);
 
         self.points = [   
@@ -85,12 +86,12 @@ class Cube(Figure):
         ]
 
         self.planes = [   
-            Plane(x, y, z - apothem, [self.points[0], self.points[1], self.points[2], self.points[3]]),
-            Plane(x + apothem, y, z, [self.points[3], self.points[2], self.points[5], self.points[4]]),
-            Plane(x, y, z + apothem, [self.points[4], self.points[5], self.points[6], self.points[7]]),
-            Plane(x - apothem, y, z, [self.points[7], self.points[6], self.points[1], self.points[0]]),
-            Plane(x, y - apothem, z, [self.points[7], self.points[0], self.points[3], self.points[4]]),
-            Plane(x, y + apothem, z, [self.points[1], self.points[6], self.points[5], self.points[2]])
+            Plane(x, y, z - apothem, [self.points[0], self.points[1], self.points[2], self.points[3]], color),
+            Plane(x + apothem, y, z, [self.points[3], self.points[2], self.points[5], self.points[4]], color),
+            Plane(x, y, z + apothem, [self.points[4], self.points[5], self.points[6], self.points[7]], color),
+            Plane(x - apothem, y, z, [self.points[7], self.points[6], self.points[1], self.points[0]], color),
+            Plane(x, y - apothem, z, [self.points[7], self.points[0], self.points[3], self.points[4]], color),
+            Plane(x, y + apothem, z, [self.points[1], self.points[6], self.points[5], self.points[2]], color)
         ]
     
     def translate(self, dx, dy, dz):
@@ -119,43 +120,144 @@ class Cube(Figure):
             plane.draw(canvas)
     
     def update(self):
+        # nothing to apply: skip the 9 matrix multiplications (matters with hundreds of cubes)
+        if self.matrix.current == self.matrix.identity:
+            return
+
         for point in self.points + [self.coord]:
             self.matrix.applyPoint(point)
         self.matrix.reset()
 
+        # the points moved, so the normals and centers of the faces changed
+        for plane in self.planes:
+            plane.refresh()
+
 class Plane(Figure):
-    def __init__(self, x, y, z, points):
+    def __init__(self, x, y, z, points, color=None):
         super().__init__(x, y, z);
 
-        self.triangles = [   
+        self.points = points
+        self.color = color
+
+        # faces glued to another block (inside a floor or a tree) are never visible
+        self.hidden = False
+
+        self.triangles = [
             Triangle([points[0], points[1], points[2]]),
             Triangle([points[2], points[3], points[0]])
-        ]        
+        ]
+
+        self.refresh()
+
+    # normal and center only change when the points move, so they are calculated once and stored
+    def refresh(self):
+        self.normal = self.getNormal()
+        self.center = self.getCenter()
+
+    def getNormal(self):
+        # v2 x v1 points out of the cube (v1 x v2 points inwards with this point order)
+        v1 = self.points[1].subtraction(self.points[0])
+        v2 = self.points[3].subtraction(self.points[0])
+        return Point.normalize(v2.crossProduct(v1))
+
+    def getCenter(self):
+        # average of the face's points
+        center = Point(0, 0, 0)
+        for p in self.points:
+            center.selfAdd(p)
+        return center.scalarMultiply(1 / len(self.points))
+
+    # back-face culling: the face is visible only if its normal points towards the camera
+    def isFacing(self, camera):
+        toCamera = camera.coord.subtraction(self.center)
+        return self.normal.dotProduct(toCamera) > 0
 
     def draw(self, canvas):
-        for triangle in self.triangles:
-            triangle.draw(canvas)
+        if self.hidden:
+            return
+        if canvas.backfaceCulling and not self.isFacing(canvas.camera):
+            return
+
+        if self.color is None:
+            for triangle in self.triangles:
+                triangle.draw(canvas)
+        else:
+            self.drawColored(canvas)
+
+        if canvas.showNormals:
+            self.drawNormal(canvas, 20)
+
+    # Minecraft-like shading: the top is the brightest, the bottom the darkest
+    def shade(self):
+        if self.normal.y > 0.5:
+            return 1.0
+        if self.normal.y < -0.5:
+            return 0.5
+        if abs(self.normal.z) > 0.5:
+            return 0.8
+        return 0.65
+
+    # the whole face as one polygon (TRIANGLE_FAN splits it into the same 2 triangles)
+    def drawColored(self, canvas):
+        projected = canvas.projectPolygon(self.points)
+        if not projected:
+            return
+
+        light = self.shade()
+        r, g, b = self.color
+
+        glColor3f(r * light, g * light, b * light)
+        glBegin(GL_TRIANGLE_FAN)
+        for vertex in projected:
+            glVertex3f(*vertex)
+        glEnd()
+
+        # darker edges, so each block can be told apart
+        glColor3f(r * light * 0.6, g * light * 0.6, b * light * 0.6)
+        glBegin(GL_LINE_LOOP)
+        for vertex in projected:
+            glVertex3f(*vertex)
+        glEnd()
+
+    def drawNormal(self, canvas, length):
+        center = self.center
+        tip = center.addition(self.normal.scalarMultiply(length))
+
+        start = canvas.projectPoint(center)
+        end = canvas.projectPoint(tip)
+        if start is None or end is None:
+            return
+
+        glColor3f(1, 1, 0)
+        glBegin(GL_LINES)
+        glVertex3f(*start)
+        glVertex3f(*end)
+        glEnd()
+
+
+        
 
 class Triangle():
     def __init__(self, points):
         self.p0, self.p1, self.p2 = points
 
     def draw(self, canvas):
-        # 1. camera space
-        inCamera = []
-        for p in [self.p0, self.p1, self.p2]:
-            inCamera.append(canvas.toCamera(p)) 
-
-        # 2. cut at the near plane
-        clipped = clip_near(inCamera, canvas.near)
-        if len(clipped) < 3:
+        projected = canvas.projectPolygon([self.p0, self.p1, self.p2])
+        if not projected:
             return
 
-        # 3. project and draw (3 or 4 vertices)
+        # fill: TRIANGLE_FAN turns the polygon into triangles that share the first vertex
+        # (3 vertices -> 1 triangle, 4 vertices -> 2 triangles: 0-1-2 and 0-2-3)
         colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0)]
-        # glBegin(GL_TRIANGLES)
-        glBegin(GL_LINE_LOOP)
-        for point, color in zip(clipped, colors):
+        glBegin(GL_TRIANGLE_FAN)
+        for vertex, color in zip(projected, colors):
             glColor3f(*color)
-            glVertex2f(*canvas.project(point))
+            glVertex3f(*vertex)
+        glEnd()
+
+        # stroke on top of the fill, so the edges stay visible
+        glColor3f(1, 1, 1)
+        glBegin(GL_LINE_LOOP)
+        for vertex in projected:
+            glVertex3f(*vertex)
         glEnd()
